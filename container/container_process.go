@@ -30,7 +30,11 @@ func RunContainer(name string, tty bool, initArgs []string, limits map[string]st
 	}
 	c := &Container{}
 	c.ID = NewUUID()
-	c.Name = name
+	if name == "" {
+		c.Name = c.ID.String()
+	} else {
+		c.Name = name
+	}
 	c.TTY = tty
 	c.Root = path.Join(config.CONTAINER_ROOT, c.ID.String(), "rootfs")
 	c.Path = path.Join(config.CONTAINER_ROOT, c.ID.String())
@@ -39,6 +43,7 @@ func RunContainer(name string, tty bool, initArgs []string, limits map[string]st
 	c.Args = initArgs
 	c.Limits = limits
 	c.Volumns = volumns
+	c.Status = ContainerCreated()
 	err := WriteContainerConfigFile(c)
 	if err != nil {
 		return err
@@ -59,15 +64,22 @@ func doRun(c *Container) error {
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("start containerd process error %v", err)
 	}
-	//createCgroup(cmd, c)
+	c.Pid = cmd.Process.Pid
+	c.Status = ContainerRunning()
+	if err := WriteContainerConfigFile(c); err != nil {
+		return err
+	}
+	createCgroup(cmd, c)
 	if err := sendInitCommand(c, writePipe); err != nil {
 		return err
 	}
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-	if err := ReleaseContainerFS(c); err != nil {
-		return nil
+	if c.TTY {
+		if err := cmd.Wait(); err != nil {
+			return err
+		}
+		if err := ReleaseContainerFS(c); err != nil {
+			return nil
+		}
 	}
 	return nil
 }
@@ -100,9 +112,13 @@ func createContainerProcess(c *Container) (*exec.Cmd, *os.File, error) {
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+	} else {
+		stdLogFile, err := GetContainerLogFile(c)
+		if err == nil && stdLogFile != nil {
+			cmd.Stdout = stdLogFile
+		}
 	}
 	cmd.ExtraFiles = []*os.File{readPipe}
-	//cmd.Dir = c.Root
 	return cmd, writePipe, nil
 }
 

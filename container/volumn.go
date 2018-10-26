@@ -1,7 +1,6 @@
 package container
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path"
@@ -42,9 +41,7 @@ func (v *Volumn) isLegal() bool {
 func MountVolumn(c *Container) error {
 	volumns := NewVolumns(c.Volumns)
 	for _, volumn := range volumns {
-		fmt.Println(volumn)
 		if err := doMountVolumn(c, volumn); err != nil {
-			fmt.Println(err)
 			return err
 		}
 	}

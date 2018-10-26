@@ -9,6 +9,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	"github.com/chengxiangwang/libcontainer/config"
+	"github.com/chengxiangwang/libcontainer/utils"
 )
 
 func ContainerAsJson(c *Container) ([]byte, error) {
@@ -45,6 +46,9 @@ func CheckContainerByName(name string) bool {
 	for _, chDir := range rootDir {
 		if chDir.IsDir() {
 			configFile := path.Join(config.CONTAINER_ROOT, chDir.Name(), "config.json")
+			if !utils.PathExists(configFile) {
+				continue
+			}
 			data, _ := ioutil.ReadFile(configFile)
 			c, _ := JsonAsContainer(data)
 			if c.Name == name {
@@ -68,7 +72,7 @@ func WriteContainerConfigFile(c *Container) error {
 		return fmt.Errorf("container as json error %v", err)
 	}
 	containerRoot := path.Join(config.CONTAINER_ROOT, c.ID.String())
-	err = os.Mkdir(containerRoot, os.ModeDir)
+	err = utils.MkDir(containerRoot)
 	if err != nil {
 		return fmt.Errorf("create container dir %s error %v", containerRoot, err)
 	}

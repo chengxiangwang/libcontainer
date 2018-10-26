@@ -66,6 +66,37 @@ var runCommand = cli.Command{
 		return nil
 	},
 }
+var psCommand = cli.Command{
+	Name:  "ps",
+	Usage: "libcontainer ps",
+	Flags: []cli.Flag{
+		cli.BoolFlag{
+			Name:  "a",
+			Usage: "show all container",
+		},
+	},
+	Action: func(context *cli.Context) error {
+		showAll := context.Bool("b")
+		if err := container.PrintShow(showAll); err != nil {
+			return err
+		}
+		return nil
+	},
+}
+
+var logCommand = cli.Command{
+	Name:  "log",
+	Usage: "libcontainer log container_id",
+	Flags: []cli.Flag{},
+	Action: func(context *cli.Context) error {
+		if (len(context.Args())) < 1 {
+			return fmt.Errorf("Missing container id")
+		}
+		containerId := context.Args()[0]
+		container.PrintContainerLog(containerId)
+		return nil
+	},
+}
 
 func main() {
 	app := cli.NewApp()
@@ -73,6 +104,8 @@ func main() {
 	app.Usage = "goC run -it /bin/bash"
 	app.Commands = []cli.Command{
 		runCommand,
+		psCommand,
+		logCommand,
 	}
 	app.Before = func(context *cli.Context) error {
 		//log.SetFormatter(&log.JSONFormatter{})

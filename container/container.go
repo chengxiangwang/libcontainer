@@ -13,7 +13,8 @@ type Container struct {
 	Args          []string
 	Limits        map[string]string
 	Volumns       []string
-	Status        string
 	ImageID       string
 	Created       time.Time
+	Pid           int
+	Status        *State
 }
